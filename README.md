@@ -1,2 +1,2 @@
 # KaluKiller
-only adult 
+only public 
