@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🎂 Birthday Celebration</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#080014;color:#fff;overflow:hidden}.stage{position:relative;width:100%;height:100%;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#5d147d 0,#17052b 45%,#050008 100%)}video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;background:#000}.overlay{position:relative;z-index:2;text-align:center;padding:28px;max-width:900px}.badge{display:inline-block;padding:8px 14px;border:1px solid #ffffff55;border-radius:999px;background:#ffffff12;backdrop-filter:blur(8px);font-size:14px}
+.sub{font-size:clamp(18px,3vw,30px);opacity:.9;margin-top:14px}.btn{margin-top:28px;border:0;border-radius:999px;padding:15px 24px;font-size:18px;font-weight:700;cursor:pointer;background:#fff;color:#351047}.hidden{display:none}.error{color:#ffd4d4;margin-top:16px;font-size:14px}
+#dotsCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+</style></head>
+<body><main class="stage">
+<canvas id="dotsCanvas"></canvas>
+<video id="player" playsinline preload="auto" controls></video>
+<section id="welcome" class="overlay"><div class="badge">A special birthday surprise 🎁</div><p class="sub">Your celebration is ready.</p><button class="btn" id="start">▶ Start Celebration</button><div id="error" class="error"></div></section>
+</main>
+<script>
+const params=new URLSearchParams(location.search);
+const name=params.get('name')||'Birthday Star';
+const media=params.get('media')||'birthday.mp4';
+const player=document.getElementById('player'); const welcome=document.getElementById('welcome'); const error=document.getElementById('error');
+player.src=media;
+document.getElementById('start').onclick=async()=>{welcome.classList.add('hidden');player.style.display='block';try{await player.play()}catch(e){error.textContent='Video play nahi hua. Screen par Play dabayein.';player.controls=true;welcome.classList.remove('hidden')}};
+player.addEventListener('error',()=>{error.textContent=`Media file nahi mili: ${media}`;});
+
+// Dot-by-dot shape reveal (connects in sequence to draw an outline)
+const canvas=document.getElementById('dotsCanvas');
+const ctx=canvas.getContext('2d');
+let W,H;
+
+// Normalized outline points (0-1 fractions) tracing a simple raised-fist icon shape.
+// Order matters: each point connects to the next, and the last connects back to the first.
+const shapePoints=[
+  [0.38,1.00],[0.62,1.00],[0.64,0.78],[0.60,0.68],[0.66,0.62],[0.60,0.58],
+  [0.62,0.50],[0.68,0.44],[0.60,0.42],[0.56,0.40],[0.56,0.06],[0.50,0.02],
+  [0.44,0.06],[0.44,0.40],[0.38,0.42],[0.30,0.44],[0.38,0.50],[0.32,0.58],
+  [0.24,0.55],[0.20,0.62],[0.30,0.66],[0.36,0.78]
+];
+
+const REVEAL_INTERVAL=280; // ms between each new point connecting
+let revealedCount=0;
+let scaledPoints=[];
+
+function resize(){
+  W=canvas.width=window.innerWidth;
+  H=canvas.height=window.innerHeight;
+  const size=Math.min(W,H)*0.55;
+  const offsetX=(W-size)/2;
+  const offsetY=(H-size)/2;
+  scaledPoints=shapePoints.map(([x,y])=>[offsetX+x*size,offsetY+y*size]);
+}
+window.addEventListener('resize',resize);
+resize();
+
+function revealNext(){
+  if(revealedCount<scaledPoints.length){
+    revealedCount++;
+    setTimeout(revealNext,REVEAL_INTERVAL);
+  }
+}
+setTimeout(revealNext,600);
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  // lines connecting revealed points in order
+  ctx.strokeStyle='rgba(220,170,255,0.85)';
+  ctx.lineWidth=2.5;
+  ctx.beginPath();
+  for(let i=0;i<revealedCount;i++){
+    const [x,y]=scaledPoints[i];
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  // close the shape once every point is connected
+  if(revealedCount===scaledPoints.length){
+    ctx.lineTo(scaledPoints[0][0],scaledPoints[0][1]);
+  }
+  ctx.stroke();
+
+  // glow fill once fully connected
+  if(revealedCount===scaledPoints.length){
+    ctx.fillStyle='rgba(200,140,255,0.12)';
+    ctx.fill();
+  }
+
+  // dots
+  for(let i=0;i<revealedCount;i++){
+    const [x,y]=scaledPoints[i];
+    ctx.beginPath();
+    ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fillStyle='#f0dcff';
+    ctx.shadowColor='#c78bff';
+    ctx.shadowBlur=8;
+    ctx.fill();
+    ctx.shadowBlur=0;
+  }
+
+  requestAnimationFrame(draw);
+}
+draw();
+</script></body></html>
